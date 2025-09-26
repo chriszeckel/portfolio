@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Radio Interface - Retro Slider</title>
+<style>
+body { 
+  background: black; 
+  color: white; 
+  font-family: courier New; 
+  text-align:left; 
+  padding:30px; 
+}
+h1 { margin-bottom:40px; }
+
+/* Outer radio frame (reused for both top + station box) */
+.radio-frame {
+  background: #1a120b;
+  border: 2px solid #444;
+  padding: 30px;
+  max-width: 1300px;
+  margin: 0 auto 40px auto;
+  box-shadow: 0 0 25px rgba(0,0,0,0.7);
+}
+
+/* Inner dial window */
+#dial-window {
+  background: #2e2013;
+  border: 1px solid #111;
+  padding: 20px;
+  position: relative;
+  box-shadow: 0 0 25px rgba(0,0,0,0.7);
+}
+
+/* Tuner container sits inside dial window */
+#tuner-container {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  height: 30px;
+  background: #2e2013;
+}
+
+/* Track */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 30px;
+  background: #2e2013;
+  border-radius: 0px;
+  position: relative;
+  margin: 0;
+}
+
+/* Thumb with semi-transparent background and internal fine line */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 30px;
+  height: 70px;
+  background: rgba(200,230,230,0.2); /* semi-transparent base */
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 0;
+  cursor: pointer;
+  margin-top: 0px;
+  position: relative;
+  z-index:2;
+
+  /* add thin center line */
+  background-image: linear-gradient(to bottom, #aa8800 0%, #aa8800 100%);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 1px 100%;
+}
+
+/* Firefox support */
+input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: rgba(255,255,255,0.5);
+  border: 2px solid #fff;
+  border-radius: 0;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Lines container */
+#lines { 
+  position:absolute; 
+  top:0; 
+  left:0; 
+  width:100%; 
+  height:100%; 
+  pointer-events:none; 
+  z-index:1; 
+}
+
+.line { position:absolute; background:red; width:1px; }
+
+.line-long { height:100%; top:0; }       /* full height for 0.050 MHz */
+.line-short { height:15px; top:7.5px; } /* middle for 0.010 MHz */
+
+.label {
+  position: absolute;
+  top: 32px;
+  font-size: 10px;
+  transform: translateX(-50%);
+  color: white;
+}
+
+.top-label {
+  position: absolute;
+  top: -10px;      /* above the bar */
+  font-size: 10px; 
+  color: white;
+  transform: translateX(-50%);
+}
+
+/* Frequency display now inside dial */
+#frequency-display {
+  margin-top: 25px;
+  text-align: center;
+  font-size: 1.2em;
+  font-family: "Courier New", monospace;
+  color: #0f0; /* green like a retro LCD */
+  background: #111;
+  padding: 10px 10px;
+  border: 1px solid #555;
+  display: inline-block;
+}
+
+/* Station info box (same style as radio frame) */
+#station-box {
+  text-align: center;
+  font-family: "Courier New", monospace;
+  font-size: 1em;
+  color: #0f0;
+  background: #111;
+  padding: 15px;
+  border: 2px solid #555;
+}
+</style>
+</head>
+<body>
+
+<div class="radio-frame">
+  <h1>// CHRISTOPH ZECKEL // EXPERIMENTAL TRANSMISSIONS // PORTFOLIO //</h1>
+  
+  <div id="dial-window">
+    <div id="tuner-container">
+      <div id="top-labels"></div> <!-- top labels container -->
+      <input type="range" id="tuner" min="0" max="1000" value="0" step="1">
+      <div id="lines"></div>
+    </div>
+    <div id="frequency-display">9.400MHz - Y2018.00</div>
+  </div>
+</div>
+
+<!-- Second box for station info -->
+<div class="radio-frame">
+  <div id="station-box">SCANNING...</div>
+</div>
+
+<audio id="static" loop>
+  <source src="static.wav" type="audio/wav">
+</audio>
+<div id="tracks"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const slider = document.getElementById('tuner');
+  const display = document.getElementById('frequency-display');
+  const stationBox = document.getElementById('station-box');
+  const staticSound = document.getElementById('static');
+  const tracksContainer = document.getElementById('tracks');
+  const linesContainer = document.getElementById('lines');
+  const topLabelsContainer = document.getElementById('top-labels');
+
+  // === Helpers ===
+  function sliderToMHz(value){ return 9.4 + (value/1000)*0.5; }
+  function sliderToYear(value){ return '20' + ((18 + value/125).toFixed(2)); }
+
+  // === Station Info Placeholder Array ===
+  const stationInfo = [
+    { freq: 100, bandwidth: 15, title: "Radio Flux", details: "Experimental Waves, Berlin" },
+    { freq: 300, bandwidth: 20, title: "Cosmic Noise FM", details: "Live from the Ether" },
+    { freq: 750, bandwidth: 25, title: "Interference Radio", details: "Distorted Realities" }
+  ];
+
+  function updateStationBox(value){
+    let found = null;
+    for (const st of stationInfo){
+      if (Math.abs(value - st.freq) < st.bandwidth){
+        found = st;
+        break;
+      }
+    }
+    if (found){
+      stationBox.innerHTML = `<strong>${found.title}</strong><br>${found.details}`;
+    } else {
+      stationBox.textContent = "SCANNING...";
+    }
+  }
+
+  // === AUDIO ENGINE (unchanged) ===
+  const centers = [20,35,50,120,140,180,220,260,310,330,400,420,440,460,500,540,580,630,650,670,
+                   700,720,740,780,810,830,860,880,900,930,950,970,985,995,100,150,200,240,290,
+                   350,380,470,520,560,600,660,690,730,770,800,840,870,910,940,960,990,999];
+
+  const audioEls=[];
+  centers.forEach((c,i)=>{
+    const audio=document.createElement('audio');
+    audio.id='track'+(i+1); audio.loop=true;
+    const src=document.createElement('source');
+    src.src=`track${i+1}.mp3`; src.type='audio/mpeg';
+    audio.appendChild(src);
+    tracksContainer.appendChild(audio);
+    audioEls.push(audio);
+  });
+
+  const tracks = audioEls.map((el,i)=>({audio:el,center:centers[i],targetVolume:0}));
+  let staticTargetVolume=0.6;
+  let audioStarted=false;
+
+  function startAudio(){
+    if(audioStarted) return;
+    audioStarted=true;
+    staticSound.volume=0.6; staticSound.play().catch(()=>{});
+    tracks.forEach(t=>{t.audio.volume=0; t.audio.play().catch(()=>{});});
+  }
+
+  function updateAudioTargets(value){
+    const bandwidth=8;
+    let maxStationVolume=0;
+    tracks.forEach(t=>{
+      const dist=Math.abs(value-t.center);
+      let vol=0;
+      if(dist<bandwidth) vol=1-(dist/bandwidth);
+      t.targetVolume=vol;
+      if(vol>maxStationVolume) maxStationVolume=vol;
+    });
+    staticTargetVolume=0.6*(1-maxStationVolume);
+  }
+
+  function fadeStep(){
+    const smoothing=0.25;
+    tracks.forEach(t=> t.audio.volume+=(t.targetVolume-t.audio.volume)*smoothing );
+    staticSound.volume+=(staticTargetVolume-staticSound.volume)*smoothing;
+    requestAnimationFrame(fadeStep);
+  }
+  requestAnimationFrame(fadeStep);
+
+  // === Slider input ===
+  slider.addEventListener('input',()=>{
+    startAudio();
+    const value=parseInt(slider.value,10);
+    display.textContent=sliderToMHz(value).toFixed(3)+'MHz - Y'+sliderToYear(value);
+    updateAudioTargets(value);
+    updateStationBox(value);
+  });
+
+  // === Draw top labels ===
+  const years = [2018,2019,2020,2021,2022,2023,2024,2025,2026];
+  const numYears = years.length - 1;
+  for(let i=0;i<=numYears;i++){
+    const yearLabel = document.createElement('div');
+    yearLabel.className = 'top-label';
+    const percent = i/numYears*100;
+    yearLabel.style.left = percent + '%';
+    yearLabel.innerText = years[i];
+    topLabelsContainer.appendChild(yearLabel);
+  }
+
+  // Full-height lines every 0.050 MHz
+  const numLines = 10;
+  for(let i=0;i<=numLines;i++){
+    const line=document.createElement('div');
+    line.className='line line-long';
+    const percent = i/numLines*100;
+    line.style.left = percent+'%';
+    linesContainer.appendChild(line);
+
+    const label=document.createElement('div');
+    label.className='label';
+    label.style.left = percent+'%';
+    label.innerText = (9.4 + 0.05*i).toFixed(3);
+    linesContainer.appendChild(label);
+  }
+
+  // Short lines every 0.010 MHz
+  const numShortLines = 200;
+  for(let i=1;i<numShortLines;i++){
+    const line=document.createElement('div');
+    line.className='line line-short';
+    const percent = i/numShortLines*100;
+    line.style.left = percent+'%';
+    linesContainer.appendChild(line);
+  }
+
+  // Initial states
+  updateAudioTargets(parseInt(slider.value,10));
+  updateStationBox(parseInt(slider.value,10));
+});
+</script>
+
+</body>
+</html>
