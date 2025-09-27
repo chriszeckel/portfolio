@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Radio Interface - Retro Slider</title>
+<title>Christoph Zeckel - Experimental Transmissions</title>
 <style>
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
 body { 
   background: black; 
   color: white; 
@@ -11,25 +14,37 @@ body {
   text-align:left; 
   padding:30px; 
 }
-h1 { margin-bottom:40px; }
+
+h1 {
+  margin-bottom: 40px;
+  font-family: "Share Tech Mono", monospace;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 2em;
+  letter-spacing: 0px;
+  color: #e3e3e3;
+  text-align: left;
+  text-transform: uppercase;
+}
 
 /* Outer radio frame (reused for both top + station box) */
 .radio-frame {
-  background: #1a120b;
-  border: 2px solid #444;
+  background: #292a2b;
+  border: 4px solid #222;
+  border-radius: 10px;
   padding: 30px;
-  max-width: 1300px;
+  max-width: 1000px;
   margin: 0 auto 40px auto;
   box-shadow: 0 0 25px rgba(0,0,0,0.7);
 }
 
 /* Inner dial window */
 #dial-window {
-  background: #2e2013;
-  border: 1px solid #111;
+  background: #111111;
+  border: 3px solid #000;
+  border-radius: 10px;
   padding: 20px;
   position: relative;
-  box-shadow: 0 0 25px rgba(0,0,0,0.7);
 }
 
 /* Tuner container sits inside dial window */
@@ -38,7 +53,7 @@ h1 { margin-bottom:40px; }
   width: 100%;
   margin: 0 auto;
   height: 30px;
-  background: #2e2013;
+  background: #111111;
 }
 
 /* Track */
@@ -46,9 +61,10 @@ input[type="range"] {
   -webkit-appearance: none;
   width: 100%;
   height: 30px;
-  background: #2e2013;
+  background: #111111;
   border-radius: 0px;
   position: relative;
+  cursor: crosshair;
   margin: 0;
 }
 
@@ -59,14 +75,14 @@ input[type="range"]::-webkit-slider-thumb {
   height: 70px;
   background: rgba(200,230,230,0.2); /* semi-transparent base */
   border: 1px solid rgba(255,255,255,0.4);
-  border-radius: 0;
-  cursor: pointer;
+  border-radius: 2px;
+  cursor: crosshair;
   margin-top: 0px;
   position: relative;
   z-index:2;
 
   /* add thin center line */
-  background-image: linear-gradient(to bottom, #aa8800 0%, #aa8800 100%);
+  background-image: linear-gradient(to bottom, #ffffb8 0%, #ffffb8 100%);
   background-repeat: no-repeat;
   background-position: center;
   background-size: 1px 100%;
@@ -91,10 +107,17 @@ input[type="range"]::-moz-range-thumb {
   width:100%; 
   height:100%; 
   pointer-events:none; 
-  z-index:1; 
+  z-index:1;
 }
 
-.line { position:absolute; background:red; width:1px; }
+.line {
+  position: absolute;
+  background: #0f0; /* neon green */
+  width: 1px;
+  box-shadow: 
+    0 0 2px #0f0,
+    0 0 6px #0f0;
+}
 
 .line-long { height:100%; top:0; }       /* full height for 0.050 MHz */
 .line-short { height:15px; top:7.5px; } /* middle for 0.010 MHz */
@@ -104,15 +127,18 @@ input[type="range"]::-moz-range-thumb {
   top: 32px;
   font-size: 10px;
   transform: translateX(-50%);
-  color: white;
+  color: #0f0;
+  text-shadow: #0f0 0 0 2px, #0f0 0 0 10px;
 }
 
 .top-label {
   position: absolute;
   top: -10px;      /* above the bar */
   font-size: 10px; 
-  color: white;
+  color: #0f0;
   transform: translateX(-50%);
+  text-shadow: #0f0 0 0 2px, #0f0 0 0 10px;
+  z-index: 2;
 }
 
 /* Frequency display now inside dial */
@@ -124,26 +150,101 @@ input[type="range"]::-moz-range-thumb {
   color: #0f0; /* green like a retro LCD */
   background: #111;
   padding: 10px 10px;
-  border: 1px solid #555;
+  border: 1px solid #0f0;
+  box-shadow: 
+    0 0 2px #0f0,
+    0 0 3px #0f0;
   display: inline-block;
+  text-shadow:
+    #0f0 0 0 2px,
+    #0f0 0 0 12px;
+}
+
+#link-display {
+  position: absolute;
+  right: 20px;
+  margin-top: 25px;
+  text-align: center;
+  font-size: 1.2em;
+  font-family: "Courier New", monospace;
+  color: #8ed5fd;
+  background: #111;
+  padding: 10px 10px;
+  border: 1px solid #8ed5fd;
+  box-shadow: 
+    0 0 1px #8ed5fd,
+    0 0 2px #3078f2;
+  display: inline-block;
+  text-shadow:
+    #8ed5fd 0 0 1px,
+    #3078f2 0 0 6px;
+  opacity: 0.2;
+  transition: opacity 0.3s, box-shadow 0.3s, text-shadow 0.3s, color 0.3s;
+  cursor: default;
+}
+
+#link-display.active {
+  opacity: 1;
+  box-shadow: 
+    0 0 2px #8ed5fd,
+    0 0 6px #3078f2;
+  text-shadow:
+    #8ed5fd 0 0 2px,
+    #3078f2 0 0 12px;
+  cursor: pointer;
+}
+
+
+#indicator-lights {
+  position: absolute;
+  left: 268px;
+  top: 75px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.indicator {
+  width: 60px;
+  padding: 4px;
+  text-align: center;
+  font-size: 8px;
+  color: #0f0;
+  border: 1px solid #0f0;
+  background: #111;
+  opacity: 0.2; /* dim by default */
+  transition: opacity 0.3s, box-shadow 0.3s;
+}
+
+.indicator.active {
+  opacity: 1;
+  box-shadow: 
+    0 0 2px #0f0,
+    0 0 3px #0f0;
 }
 
 /* Station info box (same style as radio frame) */
 #station-box {
   text-align: center;
+  min-height: 3em;
   font-family: "Courier New", monospace;
+  margin-top: 20px;
+  text-shadow:
+    #0f0 0 0 2px,
+    #0f0 0 0 12px;
   font-size: 1em;
   color: #0f0;
   background: #111;
   padding: 15px;
-  border: 2px solid #555;
+  border: 3px solid #000;
+  border-radius: 10px;
 }
 </style>
 </head>
 <body>
 
 <div class="radio-frame">
-  <h1>// CHRISTOPH ZECKEL // EXPERIMENTAL TRANSMISSIONS // PORTFOLIO //</h1>
+  <h1>// CZ 7600D // CHRISTOPH ZECKEL // PORTFOLIO // EXPERIMENTAL TRANSMISSIONS //</h1>
   
   <div id="dial-window">
     <div id="tuner-container">
@@ -152,14 +253,15 @@ input[type="range"]::-moz-range-thumb {
       <div id="lines"></div>
     </div>
     <div id="frequency-display">9.400MHz - Y2018.00</div>
+    <div id="link-display">>>LINK>></div>
+    <div id="indicator-lights">
+      <div class="indicator" id="tuned-light">TUNED</div>
+      <div class="indicator" id="stereo-light">STEREO</div>
   </div>
-</div>
 
-<!-- Second box for station info -->
-<div class="radio-frame">
+  <!-- Second box for station info -->
   <div id="station-box">SCANNING...</div>
 </div>
-
 <audio id="static" loop>
   <source src="static.wav" type="audio/wav">
 </audio>
@@ -181,10 +283,11 @@ document.addEventListener("DOMContentLoaded", function(){
 
   // === Station Info Placeholder Array ===
   const stationInfo = [
-    { freq: 100, bandwidth: 15, title: "Radio Flux", details: "Experimental Waves, Berlin" },
-    { freq: 300, bandwidth: 20, title: "Cosmic Noise FM", details: "Live from the Ether" },
-    { freq: 750, bandwidth: 25, title: "Interference Radio", details: "Distorted Realities" }
+    { freq: 100, bandwidth: 15, title: "Radio Flux", details: "Experimental Waves, Berlin", link: "https://www.youtube.com" },
+    { freq: 300, bandwidth: 20, title: "Cosmic Noise FM", details: "Live from the Ether", link: "https://www.youtube.com" },
+    { freq: 750, bandwidth: 25, title: "Interference Radio", details: "Distorted Realities"}
   ];
+
 
   function updateStationBox(value){
     let found = null;
@@ -194,14 +297,30 @@ document.addEventListener("DOMContentLoaded", function(){
         break;
       }
     }
+    const linkDisplay = document.getElementById('link-display');
     if (found){
       stationBox.innerHTML = `<strong>${found.title}</strong><br>${found.details}`;
+      document.getElementById('tuned-light').classList.add('active');
+      document.getElementById('stereo-light').classList.add('active'); // both on when tuned
+
+      if (found.link){
+        linkDisplay.classList.add('active');
+        linkDisplay.onclick = () => window.open(found.link, "_blank");
+      } else {
+        linkDisplay.classList.remove('active');
+        linkDisplay.onclick = null;
+      }
     } else {
-      stationBox.textContent = "SCANNING...";
-    }
+      stationBox.textContent = 'SCANNING...';
+      document.getElementById('tuned-light').classList.remove('active');
+      document.getElementById('stereo-light').classList.remove('active');
+      linkDisplay.classList.remove('active');
+      linkDisplay.onclick = null;
+}
+
   }
 
-  // === AUDIO ENGINE (unchanged) ===
+  // === AUDIO ENGINE ===
   const centers = [20,35,50,120,140,180,220,260,310,330,400,420,440,460,500,540,580,630,650,670,
                    700,720,740,780,810,830,860,880,900,930,950,970,985,995,100,150,200,240,290,
                    350,380,470,520,560,600,660,690,730,770,800,840,870,910,940,960,990,999];
@@ -218,13 +337,13 @@ document.addEventListener("DOMContentLoaded", function(){
   });
 
   const tracks = audioEls.map((el,i)=>({audio:el,center:centers[i],targetVolume:0}));
-  let staticTargetVolume=0.6;
+  let staticTargetVolume=0.8;
   let audioStarted=false;
 
   function startAudio(){
     if(audioStarted) return;
     audioStarted=true;
-    staticSound.volume=0.6; staticSound.play().catch(()=>{});
+    staticSound.volume=0.8; staticSound.play().catch(()=>{});
     tracks.forEach(t=>{t.audio.volume=0; t.audio.play().catch(()=>{});});
   }
 
@@ -238,11 +357,11 @@ document.addEventListener("DOMContentLoaded", function(){
       t.targetVolume=vol;
       if(vol>maxStationVolume) maxStationVolume=vol;
     });
-    staticTargetVolume=0.6*(1-maxStationVolume);
+    staticTargetVolume=0.8*(1-maxStationVolume);
   }
 
   function fadeStep(){
-    const smoothing=0.25;
+    const smoothing=0.5;
     tracks.forEach(t=> t.audio.volume+=(t.targetVolume-t.audio.volume)*smoothing );
     staticSound.volume+=(staticTargetVolume-staticSound.volume)*smoothing;
     requestAnimationFrame(fadeStep);
